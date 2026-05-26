@@ -148,6 +148,10 @@ genkernel --tempdir=/var/tmp/genkernel all
 echo ">> Creating 4GB Swapfile (Arch-Style)..."
 dd if=/dev/zero of=/swapfile bs=1M count=4096 status=progress && chmod 600 /swapfile && mkswap /swapfile
 
+# --- INSERT SYNC HERE ---
+echo ">> Flushing swapfile buffers to disk..."
+sync
+
 echo ">> Generating Fstab..."
 echo -e "UUID=\$(blkid -s UUID -o value $ROOT_PART) / ext4 defaults,noatime 0 1" > /etc/fstab
 echo -e "UUID=\$(blkid -s UUID -o value $BOOT_PART) /boot ext4 defaults,noatime 0 2" >> /etc/fstab
