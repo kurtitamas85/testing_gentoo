@@ -1,12 +1,22 @@
 #!/bin/bash
 # ===============================================================================
-# PROJECT AEGIS: GENTOO MASTER TUI INSTALLER (v7.0)
+# PROJECT AEGIS: GENTOO MASTER TUI INSTALLER (v9.0 GITHUB CLONE EDITION)
 # PARAGON DEDICATED EFI + RYZE 5300U + 4GB SWAPFILE + WINDOWS 11 CANARY
 # ===============================================================================
 
+# Because we are now booting from the Gentoo LiveGUI, we use 'emerge' instead of 'pacman'
 if ! command -v dialog &> /dev/null; then
-    pacman -Sy --noconfirm dialog wget curl tar
+    echo "Installing Dialog interface..."
+    emerge --ask=n --oneshot dev-util/dialog
 fi
+
+dialog --title 'Network Check' --msgbox 'Welcome to Aegis Gentoo Installer!\n\nSince you are using the Gentoo LiveGUI, please make sure you clicked the Wi-Fi icon in the bottom right corner of your screen and connected to the internet before continuing.' 10 60
+
+dialog --infobox 'Testing internet connection...' 5 40
+while ! ping -c 1 gentoo.org &> /dev/null; do
+  dialog --title 'Error' --msgbox 'No internet connection detected!\n\nPlease click the network icon in the bottom right of your screen, connect to Wi-Fi, and run this script again.' 10 50
+  clear; exit 1
+done
 
 dialog --title 'System Detection' --msgbox "Please ensure you have created your 3 dedicated partitions in Paragon Partition Manager:\n\n1. EFI (800MB, FAT32)\n2. BOOT (2GB, EXT4)\n3. ROOT (85-100GB, EXT4)\n\nWe will now ask for these partition names." 14 70
 
