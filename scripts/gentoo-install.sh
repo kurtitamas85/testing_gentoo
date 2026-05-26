@@ -4,6 +4,16 @@
 # PARAGON DEDICATED EFI + RYZE 5300U + 4GB SWAPFILE + WINDOWS 11 CANARY
 # ===============================================================================
 
+# Inside your installation script:
+if [ -d "testing_gentoo" ]; then
+    echo "Updating existing repository..."
+    cd testing_gentoo && git pull
+else
+    echo "Cloning repository..."
+    git clone https://github.com/kurtitamas85/testing_gentoo
+    cd testing_gentoo
+fi
+
 # Because we are now booting from the Gentoo LiveGUI, we use 'emerge' instead of 'pacman'
 if ! command -v dialog &> /dev/null; then
     echo "Installing Dialog interface..."
