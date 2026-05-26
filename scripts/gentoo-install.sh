@@ -46,8 +46,17 @@ mount -o umask=0077 "$EFI_PART" /mnt/gentoo/boot/efi
 
 cd /mnt/gentoo
 echo "Fetching latest Gentoo Stage3 tarball (Systemd profile)..."
-STAGE3_URL=$(curl -s https://gentoo.osuosl.org/releases/amd64/autobuilds/latest-stage3-amd64-systemd.txt | grep -v "^#" | head -n 1 | awk '{print "https://gentoo.osuosl.org/releases/amd64/autobuilds/"$1}')
-wget -O stage3.tar.xz "$STAGE3_URL"
+# Don't try to parse the index page if it's failing
+# Use a variable for the base URL and the filename
+STAGE3_URL="https://gentoo.osuosl.org/releases/amd64/autobuilds/20260524T000000Z/stage3-amd64-systemd-20260524T000000Z.tar.xz"
+
+echo "Downloading Stage3..."
+wget "$STAGE3_URL" -O /mnt/gentoo/stage3.tar.xz
+
+if [ ! -f /mnt/gentoo/stage3.tar.xz ]; then
+    echo "ERROR: Stage3 download failed. Aborting."
+    exit 1
+fi
 
 echo '==== [3/6] UNPACKING GENTOO ===='
 tar xpvf stage3.tar.xz --xattrs-include='*.*' --numeric-owner
