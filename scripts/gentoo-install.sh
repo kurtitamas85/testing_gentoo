@@ -77,8 +77,8 @@ cat <<EOF > /mnt/gentoo/etc/portage/make.conf
 COMMON_FLAGS="-O2 -pipe -march=znver2"
 CFLAGS="\${COMMON_FLAGS}"
 CXXFLAGS="\${COMMON_FLAGS}"
-FCFLAGS="\${COMMON_FLAGS}"
-FFLAGS="\${COMMON_FLAGS}"
+# Redirect portage temp to physical disk
+PORTAGE_TMPDIR="/var/tmp"
 
 # Safe multithreading to prevent OOM on 11.5GB Usable RAM
 MAKEOPTS="-j6 -l6"
@@ -113,7 +113,9 @@ echo '==== [6/6] ENTERING GENTOO CHROOT ===='
 cat <<EOF > /mnt/gentoo/setup_chroot.sh
 #!/bin/bash
 source /etc/profile
-export PS1="(chroot) \${PS1}"
+# Create physical tmp dir on disk
+mkdir -p /var/tmp/portage
+chown portage:portage /var/tmp/portage
 
 echo ">> Syncing Live Portage Tree..."
 emerge-webrsync
@@ -134,7 +136,7 @@ emerge sys-kernel/zen-sources sys-kernel/genkernel sys-kernel/linux-firmware
 eselect kernel set 1
 # Force amd-pstate support for Ryzen 5300U
 sed -i 's/# CONFIG_X86_AMD_PSTATE is not set/CONFIG_X86_AMD_PSTATE=y/' /usr/share/genkernel/arch/x86_64/kernel-config
-genkernel all
+genkernel --tempdir=/var/tmp/genkernel all
 
 echo ">> Creating 4GB Swapfile (Arch-Style)..."
 dd if=/dev/zero of=/swapfile bs=1M count=4096 status=progress
