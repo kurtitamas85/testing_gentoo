@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gentoo Installation Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen text-gray-900">
+    <div class="max-w-6xl mx-auto p-6">
+        <header class="mb-10">
+            <h1 class="text-4xl font-black text-gray-950">Gentoo Installation Guide</h1>
+            <p class="text-gray-600 mt-2">Official automated roadmap for your system.</p>
+        </header>
+
+        <div class="flex flex-col lg:flex-row gap-8">
+            <!-- Sidebar -->
+            <nav class="w-full lg:w-1/4 space-y-4">
+                <div class="bg-white p-6 rounded-xl border border-gray-200">
+                    <h3 class="font-bold mb-4 uppercase text-xs tracking-widest text-gray-400">Documentation</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-blue-600 font-medium">Installation Roadmap</a></li>
+                        <li><a href="#" class="text-gray-600 hover:text-blue-600">Configuration Files</a></li>
+                        <li><a href="#" class="text-gray-600 hover:text-blue-600">Troubleshooting</a></li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="w-full lg:w-3/4 space-y-6">
+                <div id="steps-container" class="space-y-4">
+                    <!-- Steps injected here -->
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        const steps = [
+            { id: 1, title: 'Environment Preparation', cmd: 'livegui-init --disk-setup' },
+            { id: 2, title: 'Network Setup', cmd: 'net-setup enp3s0' },
+            { id: 3, title: 'Stage 3 Unpacking', cmd: 'tar xpvf stage3-*.tar.xz --xattrs-include=\'*.*\' --numeric-owner' },
+            { id: 4, title: 'Mounting Filesystems', cmd: 'mount /dev/sda1 /mnt/gentoo' },
+            { id: 5, title: 'Chrooting', cmd: 'arch-chroot /mnt/gentoo' }
+        ];
+
+        const container = document.getElementById('steps-container');
+        steps.forEach(step => {
+            container.innerHTML += `
+                <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm flex items-start gap-4">
+                    <div class="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold shrink-0">${step.id}</div>
+                    <div class="flex-grow">
+                        <h4 class="font-bold text-lg">${step.title}</h4>
+                        <div class="mt-2 bg-gray-950 text-emerald-400 p-3 rounded font-mono text-sm overflow-x-auto">$ ${step.cmd}</div>
+                    </div>
+                </div>
+            `;
+        });
+    </script>
+</body>
+</html>
