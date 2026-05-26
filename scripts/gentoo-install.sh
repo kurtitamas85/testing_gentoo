@@ -58,7 +58,7 @@ cd /mnt/gentoo
 echo "Fetching latest Gentoo Stage3 tarball (Systemd profile)..."
 # Don't try to parse the index page if it's failing
 # Use a variable for the base URL and the filename
-STAGE3_URL="https://gentoo.osuosl.org/releases/amd64/autobuilds/20260524T000000Z/stage3-amd64-systemd-20260524T000000Z.tar.xz"
+STAGE3_URL="https://gentoo.osuosl.org/releases/amd64/autobuilds/20260524T170105Z/stage3-amd64-systemd-20260524T170105Z.tar.xz"
 
 echo "Downloading Stage3..."
 wget "$STAGE3_URL" -O /mnt/gentoo/stage3.tar.xz
