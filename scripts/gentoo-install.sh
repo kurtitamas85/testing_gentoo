@@ -62,7 +62,6 @@ mount -o umask=0077 "$EFI_PART" /mnt/gentoo/boot/efi
 echo "Verifying disk space on ROOT partition:"
 df -h /mnt/gentoo
 
-cd /mnt/gentoo
 echo "Fetching latest Gentoo Stage3 tarball (Systemd profile)..."
 # Don't try to parse the index page if it's failing
 # Use a variable for the base URL and the filename
