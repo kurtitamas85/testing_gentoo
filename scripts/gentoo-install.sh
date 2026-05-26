@@ -1,116 +1,94 @@
 #!/bin/bash
 # ===============================================================================
-# PROJECT AEGIS: GENTOO MASTER TUI INSTALLER (v9.0 GITHUB CLONE EDITION)
-# PARAGON DEDICATED EFI + RYZE 5300U + 4GB SWAPFILE + WINDOWS 11 CANARY
+# PROJECT AEGIS: GENTOO MASTER TUI INSTALLER (v11 POST-MOUNT + BLEEDING EDGE)
+# RYZE 5300U (ZEN 2) + LATEST STAGE3 + KDE PLASMA BETA (~AMD64)
 # ===============================================================================
 
-# Force unmount before formatting
-umount /dev/nvme0n1p4 2>/dev/null
-umount /dev/nvme0n1p5 2>/dev/null
-umount /dev/nvme0n1p6 2>/dev/null
-
-# Inside your installation script:
-if [ -d "testing_gentoo" ]; then
-    echo "Updating existing repository..."
-    cd testing_gentoo && git pull
-else
-    echo "Cloning repository..."
-    git clone https://github.com/kurtitamas85/testing_gentoo
-    cd testing_gentoo
-fi
-
-# Because we are now booting from the Gentoo LiveGUI, we use 'emerge' instead of 'pacman'
+# 1. Dependency Check & Network
 if ! command -v dialog &> /dev/null; then
-    echo "Installing Dialog interface..."
-    emerge --ask=n --oneshot dev-util/dialog
+    sudo emerge --ask=n --oneshot dev-util/dialog
 fi
-
-dialog --title 'Network Check' --msgbox 'Welcome to Aegis Gentoo Installer!\n\nSince you are using the Gentoo LiveGUI, please make sure you clicked the Wi-Fi icon in the bottom right corner of your screen and connected to the internet before continuing.' 10 60
 
 dialog --infobox 'Testing internet connection...' 5 40
 while ! ping -c 1 gentoo.org &> /dev/null; do
-  dialog --title 'Error' --msgbox 'No internet connection detected!\n\nPlease click the network icon in the bottom right of your screen, connect to Wi-Fi, and run this script again.' 10 50
+  dialog --title 'Error' --msgbox 'No internet connection detected!\nPlease connect to Wi-Fi and run this script again.' 10 50
   clear; exit 1
 done
 
-dialog --title 'System Detection' --msgbox "Please ensure you have created your 3 dedicated partitions in Paragon Partition Manager:\n\n1. EFI (800MB, FAT32)\n2. BOOT (2GB, EXT4)\n3. ROOT (85-100GB, EXT4)\n\nWe will now ask for these partition names." 14 70
+# 2. PRE-FLIGHT CHECKS: Ensure User did the manual mounts correctly
+if ! mountpoint -q /mnt/gentoo; then
+    dialog --title 'MOUNT ERROR' --msgbox "CRITICAL: /mnt/gentoo is NOT mounted!\n\nPlease follow the manual mounting guide first." 10 60
+    clear; exit 1
+fi
 
-EFI_PART=$(dialog --title 'Partitions' --inputbox "Enter the NEW 800MB EFI partition (e.g., /dev/nvme0n1p4):" 10 60 3>&1 1>&2 2>&3)
-BOOT_PART=$(dialog --title 'Partitions' --inputbox "Enter the NEW 2GB BOOT partition (e.g., /dev/nvme0n1p5):" 10 60 3>&1 1>&2 2>&3)
-ROOT_PART=$(dialog --title 'Partitions' --inputbox 'Enter the NEW 85-100GB ROOT partition (e.g., /dev/nvme0n1p6):' 10 60 3>&1 1>&2 2>&3)
+if ! mountpoint -q /mnt/gentoo/boot/efi; then
+    dialog --title 'MOUNT ERROR' --msgbox "CRITICAL: /mnt/gentoo/boot/efi is NOT mounted!\n\nPlease mount your EFI partition." 10 60
+    clear; exit 1
+fi
 
-dialog --title 'CRITICAL SECURITY CHECK' --yesno "We will now format:\nEFI: $EFI_PART\nBOOT: $BOOT_PART\nROOT: $ROOT_PART\n\nAre you sure these are the correct Gentoo partitions and NOT Windows?" 12 70
-if [ $? -ne 0 ]; then clear; exit 1; fi
+# 3. AUTO-DETECT PARTITIONS FOR FSTAB
+ROOT_PART=$(findmnt -n -o SOURCE /mnt/gentoo)
+BOOT_PART=$(findmnt -n -o SOURCE /mnt/gentoo/boot)
+EFI_PART=$(findmnt -n -o SOURCE /mnt/gentoo/boot/efi)
+
+dialog --title 'System Detection' --msgbox "Awesome! We auto-detected your manual mounts:\n\nROOT: $ROOT_PART\nBOOT: $BOOT_PART\nEFI:  $EFI_PART\n\nWe will use these to generate your fstab safely." 14 60
 
 USER_NAME=$(dialog --title 'User' --inputbox 'Enter your new username (lowercase):' 8 60 3>&1 1>&2 2>&3)
-
 clear
-echo '==== [1/6] RE-FORMATTING PARAGON PARTITIONS SAFELY ===='
-mkfs.fat -F32 "$EFI_PART"
-mkfs.ext4 -F "$BOOT_PART"
-mkfs.ext4 -F "$ROOT_PART"
 
-echo '==== [2/6] MOUNTING AND DOWNLOADING STAGE3 ===='
-mount "$ROOT_PART" /mnt/gentoo
-mkdir -p /mnt/gentoo/boot
-mount "$BOOT_PART" /mnt/gentoo/boot
-mkdir -p /mnt/gentoo/boot/efi
+echo '==== [1/5] FETCHING THE ABSOLUTE LATEST STAGE 3 ===='
+cd /mnt/gentoo
+# Dynamically scrape the Gentoo server for today's exact release filename
+STAGE3_URL=$(curl -s https://gentoo.osuosl.org/releases/amd64/autobuilds/latest-stage3-amd64-systemd.txt | grep -v "^#" | head -n 1 | awk '{print "https://gentoo.osuosl.org/releases/amd64/autobuilds/"$1}')
 
-# Secure Mount for Windows Canary Compatibility (prevents BitLocker trigger)
-mount -o umask=0077 "$EFI_PART" /mnt/gentoo/boot/efi
+echo "Downloading Latest Stage3: $STAGE3_URL"
+wget -O /mnt/gentoo/stage3.tar.xz "$STAGE3_URL"
 
-echo "Verifying disk space on ROOT partition:"
-df -h /mnt/gentoo
-
-echo "Fetching latest Gentoo Stage3 tarball (Systemd profile)..."
-# Don't try to parse the index page if it's failing
-# Use a variable for the base URL and the filename
-STAGE3_URL="https://gentoo.osuosl.org/releases/amd64/autobuilds/20260524T170105Z/stage3-amd64-systemd-20260524T170105Z.tar.xz"
-
-echo "Downloading Stage3..."
-wget "$STAGE3_URL" -O /mnt/gentoo/stage3.tar.xz
-
-if [ ! -f /mnt/gentoo/stage3.tar.xz ]; then
+if [ ! -s /mnt/gentoo/stage3.tar.xz ]; then
     echo "ERROR: Stage3 download failed. Aborting."
     exit 1
 fi
 
-echo '==== [3/6] UNPACKING GENTOO ===='
-tar xpvf stage3.tar.xz --xattrs-include='*.*' --numeric-owner
-rm stage3.tar.xz
+echo '==== [2/5] UNPACKING GENTOO ===='
+tar xpvf /mnt/gentoo/stage3.tar.xz -C /mnt/gentoo --xattrs-include='*.*' --numeric-owner
+rm /mnt/gentoo/stage3.tar.xz
 
-echo '==== [4/6] CONFIGURING MAKE.CONF AND TMPDIR ===='
+echo '==== [3/5] CONFIGURING MAKE.CONF (AMD + BLEEDING EDGE) ===='
 mkdir -p /mnt/gentoo/var/tmp/portage
-# Ensure permissions are correct so Portage can write to disk
 chmod 1777 /mnt/gentoo/var/tmp/portage
 
 cat <<EOF > /mnt/gentoo/etc/portage/make.conf
+# COMPILER FLAGS FOR RYZEN 5300U (ZEN 2 ARCHITECTURE)
 COMMON_FLAGS="-O2 -pipe -march=znver2"
-PORTAGE_TMPDIR="/var/tmp/portage"
 CFLAGS="\${COMMON_FLAGS}"
 CXXFLAGS="\${COMMON_FLAGS}"
-# Redirect portage temp to physical disk
+FCFLAGS="\${COMMON_FLAGS}"
+FFLAGS="\${COMMON_FLAGS}"
 
-# Safe multithreading to prevent OOM on 11.5GB Usable RAM
+# UNLOCK BLEEDING EDGE (TESTING BRANCH) FOR LATEST KDE PLASMA BETA
+ACCEPT_KEYWORDS="~amd64"
+
+# HARDWARE & THREADS
+PORTAGE_TMPDIR="/var/tmp/portage"
 MAKEOPTS="-j6 -l6"
-ACCEPT_LICENSE="*"
-
-# Enable binary package acceleration
-FEATURES="getbinpkg buildpkg"
 VIDEO_CARDS="amdgpu radeonsi"
-USE="wayland dbus pipewire pulseaudio vulkan sddm plasma networkmanager -X -gnome"
 GRUB_PLATFORMS="efi-64"
+
+# BINARY ACCELERATION & USE FLAGS
+FEATURES="getbinpkg buildpkg"
+USE="wayland dbus pipewire pulseaudio vulkan sddm plasma networkmanager -X -gnome"
+ACCEPT_LICENSE="*"
 LC_MESSAGES=C.utf8
 EOF
 
 mkdir -p /mnt/gentoo/etc/portage/repos.conf
 cp /mnt/gentoo/usr/share/portage/config/repos.conf /mnt/gentoo/etc/portage/repos.conf/gentoo.conf
 
-# Unlocking the bleeding-edge testing branch for the Zen Kernel
+# Specific unlock for Zen Kernel (redundant but safe alongside ~amd64)
 mkdir -p /mnt/gentoo/etc/portage/package.accept_keywords
 echo "sys-kernel/zen-sources ~amd64" > /mnt/gentoo/etc/portage/package.accept_keywords/kernel
 
-echo '==== [5/6] CHROOT PREPARATION ===='
+echo '==== [4/5] CHROOT PREPARATION ===='
 cp --dereference /etc/resolv.conf /mnt/gentoo/etc/
 mount --types proc /proc /mnt/gentoo/proc
 mount --rbind /sys /mnt/gentoo/sys
@@ -120,11 +98,11 @@ mount --make-rslave /mnt/gentoo/dev
 mount --bind /run /mnt/gentoo/run
 mount --make-slave /mnt/gentoo/run
 
-echo '==== [6/6] ENTERING GENTOO CHROOT ===='
+echo '==== [5/5] ENTERING GENTOO CHROOT ===='
 cat <<EOF > /mnt/gentoo/setup_chroot.sh
 #!/bin/bash
 source /etc/profile
-# Create physical tmp dir on disk
+export PORTAGE_TMPDIR="/var/tmp/portage"
 mkdir -p /var/tmp/portage
 chown portage:portage /var/tmp/portage
 
@@ -145,14 +123,17 @@ eselect locale set en_US.utf8
 echo ">> Building the Latest Zen Kernel RC..."
 emerge sys-kernel/zen-sources sys-kernel/genkernel sys-kernel/linux-firmware
 eselect kernel set 1
-# Force amd-pstate support for Ryzen 5300U
+
+# [AMD HARDWARE TRIGGER] Force amd-pstate support for Ryzen 5300U
 sed -i 's/# CONFIG_X86_AMD_PSTATE is not set/CONFIG_X86_AMD_PSTATE=y/' /usr/share/genkernel/arch/x86_64/kernel-config
 genkernel --tempdir=/var/tmp/genkernel all
 
+# [DISK SAFETY] Sync kernel writes to physical SSD
+echo ">> Flushing kernel buffers to disk..."
+sync
+
 echo ">> Creating 4GB Swapfile (Arch-Style)..."
 dd if=/dev/zero of=/swapfile bs=1M count=4096 status=progress && chmod 600 /swapfile && mkswap /swapfile
-
-# --- INSERT SYNC HERE ---
 echo ">> Flushing swapfile buffers to disk..."
 sync
 
@@ -174,7 +155,7 @@ echo ">> Installing Core Tools & Network..."
 emerge -gK net-misc/networkmanager app-admin/sudo app-editors/nano app-shells/fish app-misc/fastfetch
 systemctl enable NetworkManager
 
-echo ">> Installing KDE Plasma (Binary Accelerated)..."
+echo ">> Installing LATEST KDE Plasma Beta (via ~amd64)..."
 emerge -gK kde-plasma/plasma-meta kde-apps/dolphin
 systemctl enable sddm
 
@@ -191,5 +172,5 @@ rm /mnt/gentoo/setup_chroot.sh
 
 echo "================================================="
 echo "GENTOO DUAL-BOOT INSTALLATION COMPLETE!"
-echo "Type: umount -l /mnt/gentoo/dev{/shm,/pts,} && umount -R /mnt/gentoo && reboot"
+echo "Type: sudo umount -l /mnt/gentoo/dev{/shm,/pts,} && sudo umount -R /mnt/gentoo && reboot"
 echo "================================================="
