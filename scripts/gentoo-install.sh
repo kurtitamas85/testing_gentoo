@@ -4,6 +4,11 @@
 # PARAGON DEDICATED EFI + RYZE 5300U + 4GB SWAPFILE + WINDOWS 11 CANARY
 # ===============================================================================
 
+# Force unmount before formatting
+umount /dev/nvme0n1p4 2>/dev/null
+umount /dev/nvme0n1p5 2>/dev/null
+umount /dev/nvme0n1p6 2>/dev/null
+
 # Inside your installation script:
 if [ -d "testing_gentoo" ]; then
     echo "Updating existing repository..."
