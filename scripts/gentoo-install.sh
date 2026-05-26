@@ -35,9 +35,9 @@ done
 
 dialog --title 'System Detection' --msgbox "Please ensure you have created your 3 dedicated partitions in Paragon Partition Manager:\n\n1. EFI (800MB, FAT32)\n2. BOOT (2GB, EXT4)\n3. ROOT (85-100GB, EXT4)\n\nWe will now ask for these partition names." 14 70
 
-EFI_PART=$(dialog --title 'Partitions' --inputbox "Enter the NEW 800MB EFI partition (e.g., /dev/nvme0n1pX):" 10 60 3>&1 1>&2 2>&3)
-BOOT_PART=$(dialog --title 'Partitions' --inputbox "Enter the NEW 2GB BOOT partition (e.g., /dev/nvme0n1pY):" 10 60 3>&1 1>&2 2>&3)
-ROOT_PART=$(dialog --title 'Partitions' --inputbox 'Enter the NEW 85-100GB ROOT partition (e.g., /dev/nvme0n1pZ):' 10 60 3>&1 1>&2 2>&3)
+EFI_PART=$(dialog --title 'Partitions' --inputbox "Enter the NEW 800MB EFI partition (e.g., /dev/nvme0n1p4):" 10 60 3>&1 1>&2 2>&3)
+BOOT_PART=$(dialog --title 'Partitions' --inputbox "Enter the NEW 2GB BOOT partition (e.g., /dev/nvme0n1p5):" 10 60 3>&1 1>&2 2>&3)
+ROOT_PART=$(dialog --title 'Partitions' --inputbox 'Enter the NEW 85-100GB ROOT partition (e.g., /dev/nvme0n1p6):' 10 60 3>&1 1>&2 2>&3)
 
 dialog --title 'CRITICAL SECURITY CHECK' --yesno "We will now format:\nEFI: $EFI_PART\nBOOT: $BOOT_PART\nROOT: $ROOT_PART\n\nAre you sure these are the correct Gentoo partitions and NOT Windows?" 12 70
 if [ $? -ne 0 ]; then clear; exit 1; fi
