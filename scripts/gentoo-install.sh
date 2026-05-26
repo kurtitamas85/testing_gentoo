@@ -39,8 +39,9 @@ clear
 echo '==== [1/5] FETCHING THE ABSOLUTE LATEST STAGE 3 ===='
 cd /mnt/gentoo
 # Dynamically scrape the Gentoo server for today's exact release filename
-STAGE3_URL=$(curl -s https://gentoo.osuosl.org/releases/amd64/autobuilds/latest-stage3-amd64-systemd.txt | grep -v "^#" | head -n 1 | awk '{print "https://gentoo.osuosl.org/releases/amd64/autobuilds/"$1}')
-
+# REPLACED STAGE3_URL SECTION:
+# Added 'grep -v "^-"' to explicitly ignore PGP headers
+STAGE3_URL=$(curl -s https://gentoo.osuosl.org/releases/amd64/autobuilds/latest-stage3-amd64-systemd.txt | grep -v "^#" | grep -v "^-" | head -n 1 | awk '{print "https://gentoo.osuosl.org/releases/amd64/autobuilds/"$1}')
 echo "Downloading Latest Stage3: $STAGE3_URL"
 wget -O /mnt/gentoo/stage3.tar.xz "$STAGE3_URL"
 
