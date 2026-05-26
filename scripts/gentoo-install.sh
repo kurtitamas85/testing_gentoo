@@ -146,9 +146,7 @@ sed -i 's/# CONFIG_X86_AMD_PSTATE is not set/CONFIG_X86_AMD_PSTATE=y/' /usr/shar
 genkernel --tempdir=/var/tmp/genkernel all
 
 echo ">> Creating 4GB Swapfile (Arch-Style)..."
-dd if=/dev/zero of=/swapfile bs=1M count=4096 status=progress
-chmod 600 /swapfile
-mkswap /swapfile
+dd if=/dev/zero of=/swapfile bs=1M count=4096 status=progress && chmod 600 /swapfile && mkswap /swapfile
 
 echo ">> Generating Fstab..."
 echo -e "UUID=\$(blkid -s UUID -o value $ROOT_PART) / ext4 defaults,noatime 0 1" > /etc/fstab
