@@ -13,8 +13,11 @@ Quick Start
 To run the automated installer:
 
 git clone [https://github.com/kurtitamas85/testing_gentoo.git](https://github.com/kurtitamas85/testing_gentoo.git)
+
 cd testing_gentoo/scripts
+
 chmod +x gentoo-install.sh
+
 sudo ./gentoo-install.sh
 
 
