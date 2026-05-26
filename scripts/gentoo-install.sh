@@ -54,6 +54,9 @@ mkdir -p /mnt/gentoo/boot/efi
 # Secure Mount for Windows Canary Compatibility (prevents BitLocker trigger)
 mount -o umask=0077 "$EFI_PART" /mnt/gentoo/boot/efi
 
+echo "Verifying disk space on ROOT partition:"
+df -h /mnt/gentoo
+
 cd /mnt/gentoo
 echo "Fetching latest Gentoo Stage3 tarball (Systemd profile)..."
 # Don't try to parse the index page if it's failing
@@ -72,13 +75,17 @@ echo '==== [3/6] UNPACKING GENTOO ===='
 tar xpvf stage3.tar.xz --xattrs-include='*.*' --numeric-owner
 rm stage3.tar.xz
 
-echo '==== [4/6] CONFIGURING MAKE.CONF FOR RYZEN 5300U ===='
+echo '==== [4/6] CONFIGURING MAKE.CONF AND TMPDIR ===='
+mkdir -p /mnt/gentoo/var/tmp/portage
+# Ensure permissions are correct so Portage can write to disk
+chmod 1777 /mnt/gentoo/var/tmp/portage
+
 cat <<EOF > /mnt/gentoo/etc/portage/make.conf
 COMMON_FLAGS="-O2 -pipe -march=znver2"
+PORTAGE_TMPDIR="/var/tmp/portage"
 CFLAGS="\${COMMON_FLAGS}"
 CXXFLAGS="\${COMMON_FLAGS}"
 # Redirect portage temp to physical disk
-PORTAGE_TMPDIR="/var/tmp"
 
 # Safe multithreading to prevent OOM on 11.5GB Usable RAM
 MAKEOPTS="-j6 -l6"
